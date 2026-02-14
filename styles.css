@@ -4,25 +4,25 @@
 
 :root {
     /* Colors */
-    --primary: #30D5C8;
-    --primary-dark: #20B2AA;
-    --secondary: #0F3D4C;
-    --accent: #87CEEB;
+    --primary: #00B4D8;
+    --primary-dark: #0096B8;
+    --secondary: #03045E;
+    --accent: #90E0EF;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #30D5C8 0%, #87CEEB 100%);
-    --gradient-hero: linear-gradient(135deg, #20B2AA 0%, #5ECBF1 55%, #E6F7FF 100%);
-    --gradient-card: linear-gradient(135deg, rgba(48, 213, 200, 0.12) 0%, rgba(135, 206, 235, 0.12) 100%);
+    --gradient-primary: linear-gradient(135deg, #03045E 0%, #00B4D8 100%);
+    --gradient-hero: linear-gradient(135deg, #03045E 0%, #00B4D8 100%);
+    --gradient-card: linear-gradient(135deg, rgba(0, 180, 216, 0.12) 0%, rgba(144, 224, 239, 0.12) 100%);
     
     /* Backgrounds */
-    --bg-primary: #F3FBFF;
-    --bg-card: #ffffff;
-    --bg-dark: #0F2E36;
+    --bg-primary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-dark: #03045E;
     
     /* Text */
-    --text-primary: #0F3D4C;
-    --text-secondary: #2D6A7A;
-    --text-light: #6AA9B8;
+    --text-primary: #333333;
+    --text-secondary: #555555;
+    --text-light: #666666;
     
     /* Spacing */
     --space-xs: 0.5rem;
@@ -34,8 +34,8 @@
     --space-3xl: 6rem;
     
     /* Typography */
-    --font-display: 'Poppins', sans-serif;
-    --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-body: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
