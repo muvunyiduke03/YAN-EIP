@@ -5,14 +5,14 @@
 :root {
     /* Colors */
     --primary: #00B4D8;
-    --primary-dark: #0096B8;
+    --primary-dark: #0083A6;
     --secondary: #03045E;
-    --accent: #90E0EF;
+    --accent: #0077B6;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #03045E 0%, #00B4D8 100%);
-    --gradient-hero: linear-gradient(135deg, #03045E 0%, #00B4D8 100%);
-    --gradient-card: linear-gradient(135deg, rgba(0, 180, 216, 0.12) 0%, rgba(144, 224, 239, 0.12) 100%);
+    --gradient-primary: linear-gradient(135deg, #03045E 0%, #0077B6 100%);
+    --gradient-hero: linear-gradient(135deg, #03045E 0%, #0077B6 100%);
+    --gradient-card: linear-gradient(135deg, rgba(0, 119, 182, 0.12) 0%, rgba(0, 180, 216, 0.08) 100%);
     
     /* Backgrounds */
     --bg-primary: #FFFFFF;
