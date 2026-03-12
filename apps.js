@@ -285,6 +285,7 @@ const modulesData = [
         id: 1,
         title: "Leadership Fundamentals",
         quarter: "Q1",
+        section: "Leadership",
         description: "Build foundational leadership skills including communication, decision-making, and team management.",
         objectives: [
             "Understand core leadership principles and theories",
@@ -336,32 +337,32 @@ const modulesData = [
     },
     {
         id: 2,
-        title: "Advocacy & Public Speaking",
+        title: "Resilience Training",
         quarter: "Q1",
-        description: "Master the art of advocacy and public speaking to amplify youth voices in policy and community discourse.",
+        section: "Resilience",
+        description: "Develop mental resilience and adaptive mindset strategies to thrive under pressure and lead effectively through challenges.",
         objectives: [
-            "Design effective advocacy campaigns",
-            "Master public speaking techniques",
-            "Learn stakeholder engagement strategies",
-            "Understand policy analysis and influence"
+            "Understand the foundations of mental resilience",
+            "Apply adaptive mindset strategies in real-world scenarios",
+            "Build emotional regulation and stress management skills",
+            "Develop personal resilience frameworks for youth leadership"
         ],
         materials: [
             {
                 type: "pdf",
-                name: "Advocacy Strategy Guide",
+                name: "Resilience Session Guide",
                 url: "#",
-                size: "3.2 MB"
+                size: "2.1 MB"
             },
             {
-                type: "video",
-                name: "Public Speaking Masterclass",
-                url: "#",
-                duration: "60 min"
+                type: "slides",
+                name: "Resilience Adaptive Mindset",
+                url: "https://docs.google.com/presentation/d/1kPQH7bWzo7o9hxaIe-2_Tm4A7vNbW7NR/edit?usp=drive_link&ouid=108406441382668787776&rtpof=true&sd=true"
             }
         ],
         assignment: {
-            title: "Advocacy Campaign Proposal",
-            description: "Design a comprehensive advocacy campaign addressing a youth issue in your community. Include objectives, target audience, strategies, and expected outcomes.",
+            title: "Personal Resilience Plan",
+            description: "Develop a personal resilience plan outlining strategies to manage stress and maintain performance under pressure in your leadership role.",
             deadline: "2 weeks from start",
             passingGrade: 70
         }
@@ -554,6 +555,38 @@ const modulesData = [
         assignment: {
             title: "Social Enterprise Proposal",
             description: "Develop a comprehensive social enterprise proposal including problem analysis, solution design, business model, and financial projections.",
+            deadline: "2 weeks from start",
+            passingGrade: 70
+        }
+    },
+    {
+        id: 9,
+        title: "Soft Skills Development",
+        quarter: "Q1",
+        section: "Soft Skills",
+        description: "Master essential communication, teamwork, and self-management skills critical for effective youth leadership.",
+        objectives: [
+            "Develop effective communication and active listening skills",
+            "Build collaboration and teamwork competencies",
+            "Strengthen self-management and time prioritization",
+            "Apply soft skills in advocacy and community engagement contexts"
+        ],
+        materials: [
+            {
+                type: "pdf",
+                name: "Soft Skills Session Guide",
+                url: "#",
+                size: "1.9 MB"
+            },
+            {
+                type: "slides",
+                name: "Soft Skills Self Management",
+                url: "https://docs.google.com/presentation/d/1bDz2FJ2KJwUfQU31Gv88kNrTAArbIIzc/edit?usp=drive_link&ouid=108406441382668787776&rtpof=true&sd=true"
+            }
+        ],
+        assignment: {
+            title: "Soft Skills Application Report",
+            description: "Reflect on how you have applied communication and teamwork skills in a recent youth project or initiative. Provide evidence and propose improvements.",
             deadline: "2 weeks from start",
             passingGrade: 70
         }
@@ -1489,12 +1522,13 @@ function createModuleCard(module, progress) {
     const card = document.createElement('div');
     card.className = 'module-card capacity-module-card reveal';
     card.setAttribute('data-module-id', String(module.id));
-    
+    card.style.marginBottom = '18px';
+
     const statusClass = progress.status;
     const statusText = progress.status === 'not-started' ? 'Not Started' : 
                        progress.status === 'in-progress' ? 'In Progress' : 'Completed';
     const folderName = capacityAssetFolders[module.quarter] || '';
-    const countText = getCachedModuleDocumentCount(module.quarter);
+    const countText = getCachedModuleDocumentCount(module.quarter, module.section);
     const progressDisplay = progress.progress || 0;
     
     card.innerHTML = `
@@ -1573,14 +1607,20 @@ function moduleMatchesSearch(module, term) {
         return true;
     }
 
-    const docs = capacityDocumentsCache[module.quarter] || [];
+    const allDocs = capacityDocumentsCache[module.quarter] || [];
+    const docs = module.section ? allDocs.filter(d => d.section === module.section) : allDocs;
     return docs.some(doc => formatDocumentTitle(doc.name).toLowerCase().includes(term));
 }
 
-function getCachedModuleDocumentCount(quarter) {
+function getCachedModuleDocumentCount(quarter, section) {
     const docs = capacityDocumentsCache[quarter];
     if (!docs) {
         return 'Documents: ...';
+    }
+
+    if (section) {
+        const count = docs.filter(d => d.section === section).length;
+        return `Documents: ${count}`;
     }
 
     return `Documents: ${docs.length}`;
@@ -1658,7 +1698,11 @@ async function renderModuleDocuments(module, panel) {
     loadingText.style.display = 'block';
     docList.innerHTML = '';
 
-    const documents = await getModuleDocuments(module.quarter);
+    const allDocs = await getModuleDocuments(module.quarter);
+    const documents = module.section
+        ? allDocs.filter(d => d.section === module.section)
+        : allDocs;
+
     updateCapacityLiveRegion(`${module.title}: ${documents.length} documents loaded.`);
 
     if (!documents.length) {
@@ -1670,38 +1714,9 @@ async function renderModuleDocuments(module, panel) {
 
     const listFragment = document.createDocumentFragment();
 
-    if (module.quarter === 'Q1') {
-        const grouped = documents.reduce((acc, documentFile) => {
-            const key = documentFile.section || 'Q1 Documents';
-            if (!acc[key]) {
-                acc[key] = [];
-            }
-            acc[key].push(documentFile);
-            return acc;
-        }, {});
-
-        Object.keys(grouped).forEach(sectionTitle => {
-            const heading = document.createElement('li');
-            heading.className = 'capacity-doc-item';
-            heading.innerHTML = `
-                <div class="capacity-doc-info">
-                    <h4>${sectionTitle}</h4>
-                    <p>Q1 Capacity Building Documents</p>
-                </div>
-            `;
-            listFragment.appendChild(heading);
-
-            grouped[sectionTitle]
-                .sort((a, b) => (a.itemOrder || 0) - (b.itemOrder || 0))
-                .forEach(documentFile => {
-                    listFragment.appendChild(createDocumentListItem(documentFile));
-                });
-        });
-    } else {
-        documents.forEach(documentFile => {
-            listFragment.appendChild(createDocumentListItem(documentFile));
-        });
-    }
+    documents.forEach(documentFile => {
+        listFragment.appendChild(createDocumentListItem(documentFile));
+    });
 
     docList.appendChild(listFragment);
 }
@@ -1802,7 +1817,7 @@ function refreshModuleDocBadges() {
 
         const badge = moduleCard.querySelector('.capacity-doc-badge');
         if (badge) {
-            badge.textContent = getCachedModuleDocumentCount(module.quarter);
+            badge.textContent = getCachedModuleDocumentCount(module.quarter, module.section);
         }
     });
 }
