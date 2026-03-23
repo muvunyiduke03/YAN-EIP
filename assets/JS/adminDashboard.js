@@ -807,6 +807,35 @@ function populateAssignmentCourses() {
   if (current && courses.some(c => c.id === current)) select.value = current;
 }
 
+
+function gradeSubmission(submissionId) {
+  const gradeInput = $("grade-" + submissionId);
+  const feedbackInput = $("feedback-" + submissionId);
+  if (!gradeInput || !feedbackInput) return;
+
+  const grade = gradeInput.value.trim();
+  const feedback = feedbackInput.value.trim();
+  if (!grade && !feedback) {
+    alert("Add a grade or feedback before saving.");
+    return;
+  }
+
+  const submissions = loadList(LS_KEYS.MEMBER_SUBMISSIONS);
+  const idx = submissions.findIndex((submission) => submission.id === submissionId);
+  if (idx === -1) return;
+
+  submissions[idx] = {
+    ...submissions[idx],
+    grade,
+    feedback,
+    gradedAt: new Date().toISOString(),
+    gradedBy: "Admin",
+  };
+
+  saveList(LS_KEYS.MEMBER_SUBMISSIONS, submissions);
+  renderAssignments();
+}
+
 function saveAssignment() {
   const id = $("assignmentId").value || uid("assignment");
   const courseId = $("assignmentCourse").value;
@@ -925,8 +954,31 @@ function renderAssignments() {
           </div>
         </td>
         <td>${escapeHTML(formatDate(submission.submittedAt || submission.createdAt || ""))}</td>
+        <td>
+          <input
+            id="grade-${escapeHTML(submission.id || "")}" 
+            class="grading-input"
+            type="text"
+            placeholder="e.g. 85%, A"
+            value="${escapeHTML(submission.grade || "")}"
+          >
+        </td>
+        <td>
+          <textarea
+            id="feedback-${escapeHTML(submission.id || "")}"
+            class="grading-textarea"
+            placeholder="Add feedback for this member..."
+          >${escapeHTML(submission.feedback || "")}</textarea>
+        </td>
+        <td>
+          <button class="btn-sm btn-primary-sm" data-grade-submission="${escapeHTML(submission.id || "")}">Save Grade</button>
+        </td>
       </tr>
     `);
+  });
+
+  submissionsTbody.querySelectorAll("button[data-grade-submission]").forEach((btn) => {
+    btn.addEventListener("click", () => gradeSubmission(btn.dataset.gradeSubmission));
   });
 }
 

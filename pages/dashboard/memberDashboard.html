@@ -46,7 +46,7 @@
             <article class="mdStatCard">
                 <div class="mdStatLabel">Assignment Submissions</div>
                 <div class="mdStatValue" id="submittedCount">0</div>
-                <div class="mdHint">Total Saved Submissions</div>
+                <div class="mdHint" id="gradedCountHint">0 Graded Submissions</div>
             </article>
 
             <article class="mdStatCard">
@@ -84,7 +84,7 @@
                     </div>
                     <div class="mdAssignmentsList" id="assignmentList"></div>
                 </div>
-                
+
                 <div id="moduleCatalog" class="mdModuleDef" aria-hidden="true">
                     <article class="mdModuleDef" 
                     data-quarter="Q1" 
@@ -171,6 +171,9 @@
 
                     <h4 class="mdSubtitle">Recent Submissions</h4>
                     <div class="mdHistoryList" id="submissionHistory"></div>
+
+                    <h4 class="mdSubtitle">Grades & Feedback</h4>
+                    <div class="mdHistoryList" id="gradeHistory"></div>
                 </aside>
 
                 <aside class="mdPanel">

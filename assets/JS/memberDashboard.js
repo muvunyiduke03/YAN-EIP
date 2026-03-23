@@ -165,13 +165,16 @@
 
   function syncSubmissionToAdmin(entry) {
     const submissions = loadAdminSubmissions();
-    const existingIndex = submissions.findIndex((submssion) => submissions.id === entry.id);
+    const existingIndex = submissions.findIndex((submission) => submission.id === entry.id);
 
     const memberName = state.profile.name || auth.user?.name || "Member User";
     const memberEmail = state.profile.email || auth.user?.identifier || "";
     const memberOrg = state.profile.org || "Organization Name";
+    
+    const existingSubmission = existingIndex >= 0 ? submissions[existingIndex] : null;
 
     const submissionRecord = {
+      ...existingSubmission,
       ...entry,
       memberName,
       memberEmail,
@@ -260,6 +263,7 @@
     overallProgressText: $("#overallProgressText"),
     overallProgressFill: $("#overallProgressFill"),
     submittedCount: $("#submittedCount"),
+    gradedCountHint: $("#gradedCountHint"),
     nextUnlockLabel: $("#nextUnlockLabel"),
     nextUnlockDate: $("#nextUnlockDate"),
 
@@ -296,6 +300,7 @@
     submitAssignmentBtn: $("#submitAssignmentBtn"),
     submissionAlert: $("#submissionAlert"),
     submissionHistory: $("#submissionHistory"),
+    gradeHistory: $("#gradeHistory"),
 
     // module viewer
     moduleViewerModal: $("#moduleViewerModal"),
@@ -319,6 +324,41 @@
     return Math.round((done / all.length) * 100);
   }
 
+  function getGradedSubmissions() {
+    return state.submissions.filter((submission) => submission.grade || submission.feedback);
+  }
+
+  function syncGradesFromAdmin() {
+    const adminSubmissions = loadAdminSubmissions();
+    let hasChanges = false;
+
+    state.submissions = state.submissions.map((submission) => {
+      const adminMatch = adminSubmissions.find((item) => item.id === submission.id);
+      if (!adminMatch) return submission;
+
+      const nextSubmission ={
+        ...submission,
+        grade: adminMatch.grade || "",
+        feedback: adminMatch.feedback || "",
+        gradedAt: adminMatch.gradedAt || submission.gradedAt || "",
+        gradedBy: adminMatch.gradedBy || submission.gradedBy || "",
+      };
+
+      if (
+        nextSubmission.grade !== (submission.grade || "") ||
+        nextSubmission.feedback !== (submission.feedback || "") ||
+        nextSubmission.gradedAt !== (submission.gradedAt || "") ||
+        nextSubmission.gradedBy !== (submission.gradedBy || "")
+      ) {
+        hasChanges = true
+      }
+
+      return nextSubmission;
+    });
+
+    if (hasChanges) saveState();
+  }
+
   function renderTopStats() {
     const openQ = currentOpenQuarter();
     const range = quarterRange(new Date().getFullYear(), openQ);
@@ -333,7 +373,11 @@
     els.overallProgressText.textContent = `${pct}%`;
     els.overallProgressFill.style.width = `${pct}%`;
 
+    const gradedCount = getGradedSubmissions().length;
     els.submittedCount.textContent = String(state.submissions.length);
+    if (els.gradedCountHint) {
+      els.gradedCountHint.textContent = `${gradedCount} graded submission ${gradedCount === 1 ? "" : "s"}`;
+    }
 
     els.nextUnlockLabel.textContent = next.quarter;
     els.nextUnlockDate.textContent = formatDate(next.date);
@@ -496,6 +540,35 @@
       `;
       list.appendChild(row);
     }
+  }
+
+  function renderGradeHistory() {
+    const list = els.gradeHistory;
+    if (!list) return;
+
+    list.innerHTML = "";
+    const graded = [...getGradedSubmissions()].sort((a, b) => Number(b.gradedAt || 0) - Number(a.gradedAt || 0));
+
+    if (!graded.length) {
+      list.innerHTML = `<div class="mdEmptyState">Grades from the admin will appear here once reviewed.</div>`;
+      return;
+    }
+
+    graded.forEach((submission) => {
+      const row = document.createElement("div");
+      row.className = "mdHistoryItem mdGradeItem";
+      row.innerHTML = `
+      <div class="mdHistoryLeft">
+          <div class="mdHistoryTitle">${safeText(submission.moduleTitle)}</div>
+          <div class="mdHistoryMeta">${safeText(submission.quarter)} • Graded ${formatDate(new Date(submission.gradedAt || submission.submittedAt || submission.createdAt))}</div>
+        </div>
+        <div class="mdHistoryRight mdGradeRight">
+          ${submission.grade ? `<span class="mdGradeChip">${safeText(submission.grade)}</span>` : ""}
+          <div class="mdGradeFeedback">${safeText(submission.feedback || "No feedback added yet.")}</div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
   }
 
   function getAdminCourseMap() {
@@ -879,6 +952,7 @@
 
       renderTopStats();
       renderSubmissionHistory();
+      renderGradeHistory();
       setAlert("Submission saved successfully. Awaiting review", "success");
     });
   }
@@ -969,6 +1043,7 @@
     }
 
     syncAllSubmissionsToAdmin();
+    syncGradesFromAdmin();
     renderTopStats();
     renderProfile();
     renderQuarterTabs(state.selectedQuarter);
@@ -982,6 +1057,7 @@
     updateFilePreview();
 
     renderSubmissionHistory();
+    renderGradeHistory();
   }
 
   // --------- Boot ----------

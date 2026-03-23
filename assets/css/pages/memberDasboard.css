@@ -372,3 +372,112 @@
 
 .mdSmallModal { max-width: 600px; }
 .mdForm { padding: 16px; }
+
+.mdHistoryItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.mdHistoryItem:last-child {
+  border-bottom: none;
+}
+
+.mdHistoryTitle {
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+.mdHistoryMeta {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.mdFileChip,
+.mdGradeChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e9f7fb;
+  color: #0d5d7a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mdGradeItem {
+  align-items: flex-start;
+}
+
+.mdGradeRight {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  text-align: right;
+}
+
+.mdGradeFeedback {
+  max-width: 280px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mdFileRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e6edf7;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.mdFileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.mdFileName {
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+.mdFileSize {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.mdFileRemove {
+  border: none;
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #667;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .mdGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mdHeader,
+  .mdHistoryItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mdGradeRight {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .mdGradeFeedback {
+    max-width: 100%;
+  }
+}
