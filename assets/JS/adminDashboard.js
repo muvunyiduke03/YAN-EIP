@@ -7,7 +7,7 @@ const LS_KEYS = {
   APPS: "yan_applications",
   COURSES: "yan_courses",
   ASSIGNMENTS: "yan_assignments",
-  MEMBER_SUBMISSIONS: "yane_member_submissions",
+  MEMBER_SUBMISSIONS: "yan_member_submissions",
   OPPS: "yan_opportunities",
   EVENTS: "yan_events",
   LANDING_OPPS: "yanOpportunitiesData",
@@ -855,24 +855,24 @@ function renderAssignments() {
   tbody.innerHTML = "";
   if (!assignments.length) {
     empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
+  } else {
+    empty.style.display = "none";
 
-  for (const a of assignments) {
-    tbody.insertAdjacentHTML("beforeend", `
-      <tr>
-        <td>${escapeHTML(a.title)}</td>
-        <td>${escapeHTML(courseMap[a.courseId] || "Unknown course")}</td>
-        <td>${escapeHTML(formatDate(a.dueDate))}</td>
-        <td>
-          <div class="actions" style="margin:0;">
-            <button class="btn-sm btn-soft" data-act="edit-assignment" data-id="${a.id}">Edit</button>
-            <button class="btn-sm btn-danger-sm" data-act="del-assignment" data-id="${a.id}">Delete</button>
-          </div>
-        </td>
-      </tr>
-    `);
+    for (const a of assignments) {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${escapeHTML(a.title)}</td>
+          <td>${escapeHTML(courseMap[a.courseId] || "Unknown course")}</td>
+          <td>${escapeHTML(formatDate(a.dueDate))}</td>
+          <td>
+            <div class="actions" style="margin:0;">
+              <button class="btn-sm btn-soft" data-act="edit-assignment" data-id="${a.id}">Edit</button>
+              <button class="btn-sm btn-danger-sm" data-act="del-assignment" data-id="${a.id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `);
+    }
   }
 
   tbody.querySelectorAll("button[data-act]").forEach(btn => {
@@ -915,7 +915,15 @@ function renderAssignments() {
         <td>${escapeHTML(submission.memberOrg || "-")}</td>
         <td>${escapeHTML(submission.quarter || "-")}</td>
         <td>${escapeHTML(submission.moduleTitle || courseMap[submission.moduleId] || "-")}</td>
-        <td>${escapeHTML(submission.fileName || "-")}</td>
+        <td>
+          <div class="submission-file-cell">
+            <span>${escapeHTML(submission.fileName || "-")}</span>
+            ${submission.fileDataUrl ? `<div class="submission-file-actions">
+              <a class="btn-sm btn-soft" href="${escapeHTML(submission.fileDataUrl)}" target="_blank" rel="noopener">View</a>
+              <a class="btn-sm" href="${escapeHTML(submission.fileDataUrl)}" download="${escapeHTML(submission.fileName || "submission")}">Download</a>
+            </div>` : `<span class="muted small">Legacy submission</span>`}
+          </div>
+        </td>
         <td>${escapeHTML(formatDate(submission.submittedAt || submission.createdAt || ""))}</td>
       </tr>
     `);

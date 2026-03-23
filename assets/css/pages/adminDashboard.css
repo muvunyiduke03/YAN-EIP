@@ -558,3 +558,14 @@ body { background: #f6f8fb; }
 @media (max-width: 720px){
   .kv{ grid-template-columns: 1fr; }
 }
+
+.submission-file-cell{
+  display: grid;
+  gap: 8px;
+}
+
+.submission-file-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

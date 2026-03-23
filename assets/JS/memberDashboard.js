@@ -69,6 +69,15 @@
     return String(s ?? "").replace(/[<>]/g, "");
   }
 
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error("Failed to read file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
   // --------- Data ----------
   const YEAR = new Date().getFullYear();
 
@@ -156,26 +165,31 @@
 
   function syncSubmissionToAdmin(entry) {
     const submissions = loadAdminSubmissions();
-    const alreadyExists = submissions.some((submission) => submission.id === entry.id);
-    if(alreadyExists) return;
+    const existingIndex = submissions.findIndex((submssion) => submissions.id === entry.id);
 
     const memberName = state.profile.name || auth.user?.name || "Member User";
     const memberEmail = state.profile.email || auth.user?.identifier || "";
     const memberOrg = state.profile.org || "Organization Name";
 
-    submissions.unshift({
+    const submissionRecord = {
       ...entry,
       memberName,
       memberEmail,
       memberOrg,
       submittedAt: new Date(entry.createdAt).toISOString(),
-    });
+    };
+
+    if (existingIndex >= 0) {
+      submissions[existingIndex] = { ...submissions[existingIndex], ...submissionRecord };
+    } else {
+      submissions.unshift(submissionRecord);
+    }
 
     localStorage.setItem(ADMIN_SUBMISSIONS_KEY, JSON.stringify(submissions));
+  }
 
-    function syncAllSubmissionsToAdmin() {
-      state.submissions.forEach(syncSubmissionToAdmin);
-    }
+  function syncAllSubmissionsToAdmin() {
+    state.submissions.forEach(syncSubmissionToAdmin);
   }
 
   function readJSONList(key) {
@@ -821,7 +835,7 @@
       }
     });
 
-    els.submitAssignmentBtn.addEventListener("click", () => {
+    els.submitAssignmentBtn.addEventListener("click", async() => {
       const q = els.submissionQuarter.value;
       const moduleId = els.submissionModule.value;
       if (!q || !moduleId || !selectedFile) return;
@@ -835,20 +849,28 @@
       const module = (MODULES[q] || []).find((m) => m.id === moduleId);
       if (!module) return;
 
-      // Store metadata only (backend will handle actual file upload later)
-      const entry = {
-        id: `sub-${Date.now()}`,
-        quarter: q,
-        moduleId,
-        moduleTitle: module.title,
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size,
-        createdAt: Date.now(),
-      };
+      try {
+        const fileDataUrl = await readFileAsDataURL(selectedFile);
+        
+        const entry = {
+          id: `sub-${Date.now()}`,
+          quarter: q,
+          moduleId,
+          moduleTitle: module.title,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type || "application/octet-stream",
+          fileDataUrl,
+          createdAt: Date.now(),
+        };
 
-      state.submissions.push(entry);
-      saveState();
-      syncSubmissionToAdmin(entry);
+        state.submissions.push(entry);
+        saveState();
+        syncSubmissionToAdmin(entry);
+      } catch {
+        setAlert("We could not read that file. Please try uploading again.", "warning");
+        return;
+      }
 
       // reset UI
       selectedFile = null;
@@ -857,7 +879,7 @@
 
       renderTopStats();
       renderSubmissionHistory();
-      setAlert("Submission saved (demo). Backend upload will come later.", "success");
+      setAlert("Submission saved successfully. Awaiting review", "success");
     });
   }
 
@@ -946,6 +968,7 @@
       saveState();
     }
 
+    syncAllSubmissionsToAdmin();
     renderTopStats();
     renderProfile();
     renderQuarterTabs(state.selectedQuarter);
@@ -964,6 +987,7 @@
   // --------- Boot ----------
   document.addEventListener("DOMContentLoaded", () => {
     MODULES = buildModulesFromHTML();
+    syncAllSubmissionsToAdmin();
     // navbar/footer are injected by include.js already
     bindModalClosers();
     bindProfileUI();
