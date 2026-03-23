@@ -138,6 +138,69 @@
   gap: 16px;
 }
 
+.mdAssignmentsPanel {
+  margin-top: 24px;
+  border-top: 1px solid #ebeff5;
+  padding-top: 24px;
+}
+
+.mdAssignmentsHeader {
+  margin-bottom: 12px;
+}
+
+.mdAssignmentsList {
+  display: grid;
+  gap: 12px;
+}
+
+.mdAssignmentCard {
+  border: 1px solid #e6edf7;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fbfdff;
+}
+
+.mdAssignmentTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mdAssignmentTitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--secondary-color);
+}
+
+.mdAssignmentMeta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.mdAssignmentQuarter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ecf1f8;
+  color: #345;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mdAssignmentDesc {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 .mdModuleCard {
   border: 1px solid #eee;
   padding: 16px;

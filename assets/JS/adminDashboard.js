@@ -7,6 +7,7 @@ const LS_KEYS = {
   APPS: "yan_applications",
   COURSES: "yan_courses",
   ASSIGNMENTS: "yan_assignments",
+  MEMBER_SUBMISSIONS: "yane_member_submissions",
   OPPS: "yan_opportunities",
   EVENTS: "yan_events",
   LANDING_OPPS: "yanOpportunitiesData",
@@ -829,14 +830,25 @@ function renderAssignments() {
   populateAssignmentCourses();
   const tbody = $("assignmentsTbody");
   const empty = $("assignmentsEmpty");
+  const submissionsTbody = $("memberSubmissionsTbody");
+  const submissionsEmpty = $("memberSubmissionsEmpty");
   const courseMap = Object.fromEntries(loadList(LS_KEYS.COURSES).map(c => [c.id, c.title]));
   let assignments = loadList(LS_KEYS.ASSIGNMENTS);
+  let submissions = loadList(LS_KEYS.MEMBER_SUBMISSIONS);
 
   if (state.search) {
     const q = state.search.toLowerCase();
     assignments = assignments.filter(a =>
       (a.title || "").toLowerCase().includes(q) ||
       (courseMap[a.courseId] || "").toLowerCase().includes(q)
+    );
+    submissions = submissions.filter((submission) =>
+      (submission.memberName || "").toLowerCase().includes(q) ||
+      (submission.memberEmail || "").toLowerCase().includes(q) ||
+      (submission.memberOrg || "").toLowerCase().includes(q) ||
+      (submission.moduleTitle || "").toLowerCase().includes(q) ||
+      (submission.quarter || "").toLowerCase().includes(q) ||
+      (submission.fileName || "").toLowerCase().includes(q)
     );
   }
 
@@ -880,6 +892,33 @@ function renderAssignments() {
         renderAll();
       }
     });
+  });
+
+  if (!submissionsTbody || !submissionsEmpty) return;
+
+  submissions.sort((a, b) => String(b.submittedAt || b.createdAt || "").localeCompare(String(a.submittedAt || a.createdAt || "")));
+  submissionsTbody.innerHTML = "";
+
+  if (!submissions.length) {
+    submissionsEmpty.style.display = "block";
+    return;
+  }
+
+  submissionsEmpty.style.display = "none";
+  submissions.forEach((submission) => {
+    submissionsTbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>
+          <div style="font-weight: 900; color: var(--secondary);">${escapeHTML(submission.memberName || "Member")}</div>
+          <div class="muted">${escapeHTML(submission.memberEmail || "")}</div>
+        </td>
+        <td>${escapeHTML(submission.memberOrg || "-")}</td>
+        <td>${escapeHTML(submission.quarter || "-")}</td>
+        <td>${escapeHTML(submission.moduleTitle || courseMap[submission.moduleId] || "-")}</td>
+        <td>${escapeHTML(submission.fileName || "-")}</td>
+        <td>${escapeHTML(formatDate(submission.submittedAt || submission.createdAt || ""))}</td>
+      </tr>
+    `);
   });
 }
 

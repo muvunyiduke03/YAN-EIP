@@ -97,6 +97,12 @@
   }
 
   const STORAGE_KEY = "yan_member_dashboard_v1";
+  const ADMIN_SUBMISSIONS_KEY = "yan_member_submissions";
+
+  const ADMIN_STORAGE_KEYS = {
+    COURSES: "yan_courses",
+    ASSIGNMENTS: "yan_assignments"
+  };
 
   const DEFAULT_STATE = {
     selectedQuarter: "Q1",
@@ -136,6 +142,50 @@
 
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function loadAdminSubmissions() {
+    try {
+      const raw = localStorage.getItem(ADMIN_SUBMISSIONS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function syncSubmissionToAdmin(entry) {
+    const submissions = loadAdminSubmissions();
+    const alreadyExists = submissions.some((submission) => submission.id === entry.id);
+    if(alreadyExists) return;
+
+    const memberName = state.profile.name || auth.user?.name || "Member User";
+    const memberEmail = state.profile.email || auth.user?.identifier || "";
+    const memberOrg = state.profile.org || "Organization Name";
+
+    submissions.unshift({
+      ...entry,
+      memberName,
+      memberEmail,
+      memberOrg,
+      submittedAt: new Date(entry.createdAt).toISOString(),
+    });
+
+    localStorage.setItem(ADMIN_SUBMISSIONS_KEY, JSON.stringify(submissions));
+
+    function syncAllSubmissionsToAdmin() {
+      state.submissions.forEach(syncSubmissionToAdmin);
+    }
+  }
+
+  function readJSONList(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return[];
+    }
   }
 
   let state = loadState();
@@ -204,6 +254,7 @@
     quarterStatus: $("#quarterStatus"),
     quarterTabs: $$(".mdQuarterTab"),
     modulesList: $("#moduleList"),
+    assignmentList: $("#assignmentList"),
 
     // profile
     mdAvatar: $("#mdAvatar"),
@@ -433,6 +484,64 @@
     }
   }
 
+  function getAdminCourseMap() {
+    return Object.fromEntries(
+      readJSONList(ADMIN_STORAGE_KEYS.COURSES).map((course) => [course.id, course])
+    );
+  }
+
+  function getAssignmentsForQuarter(q) {
+    const courseMap = getAdminCourseMap();
+
+    return readJSONList(ADMIN_STORAGE_KEYS.ASSIGNMENTS).map((assignment) => {
+      const course = courseMap[assignment.courseId] || null;
+      return {
+        ...assignment,
+        courseTitle: course?.title || assignment.courseTitle || "Unknown course",
+        quarter: course?.quarter || assignment.quarter || "",
+      };
+    })
+    .filter((assignment) => assignment.quarter === q)
+    .sort((a, b) => {
+      const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    });
+  }
+
+  function renderAvailableAssignments(q) {
+    if (!els.assignmentList) return;
+
+    const assignments = getAssignmentsForQuarter(q);
+    els.assignmentList.innerHTML = "";
+
+    if (!assignments.length) {
+      els.assignmentList.innerHTML = `<div class="mdEmptyState">No assignments for ${safeText(q)} yet!</div>`;
+      return;
+    }
+
+    assignments.forEach((assignment) => {
+      const card = document.createElement("article");
+      card.className = "mdAssignmentCard";
+      card.innerHTML = `
+      <div class="mdAssignmentTop">
+        <div>
+          <h4 class="mdAssignmentTitle">
+            ${safeText(assignment.title || "Untitled Assignment")}
+          </h4>
+          <div class="mdAssignmentMeta">
+            <span>${safeText(assignment.courseTitle)}</span>
+            <span>${assignment.dueDate ? `Due ${safeText(formatDate(new Date(assignment.dueDate)))}` : "No due date"}</span>
+          </div>
+        </div>
+        <span class="mdAssignmentQuarter">${safeText(q)}</span>
+      </div>
+      <p class="mdAssignmentDesc">${safeText(assignment.description || "No instructions added yet.")}</p>
+      `;
+      els.assignmentList.appendChild(card);
+    });
+  }
+  
   function syncSubmissionModuleOptions() {
     const q = els.submissionQuarter.value || state.selectedQuarter;
     const mods = MODULES[q] || [];
@@ -739,6 +848,7 @@
 
       state.submissions.push(entry);
       saveState();
+      syncSubmissionToAdmin(entry);
 
       // reset UI
       selectedFile = null;
@@ -841,6 +951,7 @@
     renderQuarterTabs(state.selectedQuarter);
     renderQuarterMeta(state.selectedQuarter);
     renderModules(state.selectedQuarter);
+    renderAvailableAssignments(state.selectedQuarter);
 
     // submission selectors
     els.submissionQuarter.value = state.selectedQuarter;
