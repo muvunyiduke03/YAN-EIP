@@ -121,7 +121,7 @@
         title,
         description: (el.dataset.description || "").trim(),
         slidesUrl,
-        followUrl,
+        followUpUrl,
         sessionUrl,
       });
     });
@@ -1020,13 +1020,13 @@
       btn.addEventListener("click", () => {
         const q = btn.dataset.quarter;
 
-        if (!canAccessQuarter(q)) {
-          // keep user on current
-          renderQuarterTabs(state.selectedQuarter);
-          renderQuarterMeta(state.selectedQuarter);
-          renderModules(state.selectedQuarter);
-          return;
-        }
+        // if (!canAccessQuarter(q)) {
+        //   // keep user on current
+        //   renderQuarterTabs(state.selectedQuarter);
+        //   renderQuarterMeta(state.selectedQuarter);
+        //   renderModules(state.selectedQuarter);
+        //   return;
+        // }
 
         state.selectedQuarter = q;
         saveState();
@@ -1072,11 +1072,11 @@
       return;
     }
 
-    // Fix selected quarter if it is locked
-    if (!canAccessQuarter(state.selectedQuarter)) {
-      state.selectedQuarter = currentOpenQuarter();
-      saveState();
-    }
+    // // Fix selected quarter if it is locked
+    // if (!canAccessQuarter(state.selectedQuarter)) {
+    //   state.selectedQuarter = currentOpenQuarter();
+    //   saveState();
+    // }
 
     syncAllSubmissionsToAdmin();
     syncGradesFromAdmin();
