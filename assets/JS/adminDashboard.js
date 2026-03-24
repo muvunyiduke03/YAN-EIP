@@ -7,6 +7,7 @@ const LS_KEYS = {
   APPS: "yan_applications",
   COURSES: "yan_courses",
   ASSIGNMENTS: "yan_assignments",
+  MEMBER_SUBMISSIONS: "yan_member_submissions",
   OPPS: "yan_opportunities",
   EVENTS: "yan_events",
   LANDING_OPPS: "yanOpportunitiesData",
@@ -806,6 +807,35 @@ function populateAssignmentCourses() {
   if (current && courses.some(c => c.id === current)) select.value = current;
 }
 
+
+function gradeSubmission(submissionId) {
+  const gradeInput = $("grade-" + submissionId);
+  const feedbackInput = $("feedback-" + submissionId);
+  if (!gradeInput || !feedbackInput) return;
+
+  const grade = gradeInput.value.trim();
+  const feedback = feedbackInput.value.trim();
+  if (!grade && !feedback) {
+    alert("Add a grade or feedback before saving.");
+    return;
+  }
+
+  const submissions = loadList(LS_KEYS.MEMBER_SUBMISSIONS);
+  const idx = submissions.findIndex((submission) => submission.id === submissionId);
+  if (idx === -1) return;
+
+  submissions[idx] = {
+    ...submissions[idx],
+    grade,
+    feedback,
+    gradedAt: new Date().toISOString(),
+    gradedBy: "Admin",
+  };
+
+  saveList(LS_KEYS.MEMBER_SUBMISSIONS, submissions);
+  renderAssignments();
+}
+
 function saveAssignment() {
   const id = $("assignmentId").value || uid("assignment");
   const courseId = $("assignmentCourse").value;
@@ -829,8 +859,11 @@ function renderAssignments() {
   populateAssignmentCourses();
   const tbody = $("assignmentsTbody");
   const empty = $("assignmentsEmpty");
+  const submissionsTbody = $("memberSubmissionsTbody");
+  const submissionsEmpty = $("memberSubmissionsEmpty");
   const courseMap = Object.fromEntries(loadList(LS_KEYS.COURSES).map(c => [c.id, c.title]));
   let assignments = loadList(LS_KEYS.ASSIGNMENTS);
+  let submissions = loadList(LS_KEYS.MEMBER_SUBMISSIONS);
 
   if (state.search) {
     const q = state.search.toLowerCase();
@@ -838,29 +871,37 @@ function renderAssignments() {
       (a.title || "").toLowerCase().includes(q) ||
       (courseMap[a.courseId] || "").toLowerCase().includes(q)
     );
+    submissions = submissions.filter((submission) =>
+      (submission.memberName || "").toLowerCase().includes(q) ||
+      (submission.memberEmail || "").toLowerCase().includes(q) ||
+      (submission.memberOrg || "").toLowerCase().includes(q) ||
+      (submission.moduleTitle || "").toLowerCase().includes(q) ||
+      (submission.quarter || "").toLowerCase().includes(q) ||
+      (submission.fileName || "").toLowerCase().includes(q)
+    );
   }
 
   tbody.innerHTML = "";
   if (!assignments.length) {
     empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
+  } else {
+    empty.style.display = "none";
 
-  for (const a of assignments) {
-    tbody.insertAdjacentHTML("beforeend", `
-      <tr>
-        <td>${escapeHTML(a.title)}</td>
-        <td>${escapeHTML(courseMap[a.courseId] || "Unknown course")}</td>
-        <td>${escapeHTML(formatDate(a.dueDate))}</td>
-        <td>
-          <div class="actions" style="margin:0;">
-            <button class="btn-sm btn-soft" data-act="edit-assignment" data-id="${a.id}">Edit</button>
-            <button class="btn-sm btn-danger-sm" data-act="del-assignment" data-id="${a.id}">Delete</button>
-          </div>
-        </td>
-      </tr>
-    `);
+    for (const a of assignments) {
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${escapeHTML(a.title)}</td>
+          <td>${escapeHTML(courseMap[a.courseId] || "Unknown course")}</td>
+          <td>${escapeHTML(formatDate(a.dueDate))}</td>
+          <td>
+            <div class="actions" style="margin:0;">
+              <button class="btn-sm btn-soft" data-act="edit-assignment" data-id="${a.id}">Edit</button>
+              <button class="btn-sm btn-danger-sm" data-act="del-assignment" data-id="${a.id}">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `);
+    }
   }
 
   tbody.querySelectorAll("button[data-act]").forEach(btn => {
@@ -880,6 +921,64 @@ function renderAssignments() {
         renderAll();
       }
     });
+  });
+
+  if (!submissionsTbody || !submissionsEmpty) return;
+
+  submissions.sort((a, b) => String(b.submittedAt || b.createdAt || "").localeCompare(String(a.submittedAt || a.createdAt || "")));
+  submissionsTbody.innerHTML = "";
+
+  if (!submissions.length) {
+    submissionsEmpty.style.display = "block";
+    return;
+  }
+
+  submissionsEmpty.style.display = "none";
+  submissions.forEach((submission) => {
+    submissionsTbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>
+          <div style="font-weight: 900; color: var(--secondary);">${escapeHTML(submission.memberName || "Member")}</div>
+          <div class="muted">${escapeHTML(submission.memberEmail || "")}</div>
+        </td>
+        <td>${escapeHTML(submission.memberOrg || "-")}</td>
+        <td>${escapeHTML(submission.quarter || "-")}</td>
+        <td>${escapeHTML(submission.moduleTitle || courseMap[submission.moduleId] || "-")}</td>
+        <td>
+          <div class="submission-file-cell">
+            <span>${escapeHTML(submission.fileName || "-")}</span>
+            ${submission.fileDataUrl ? `<div class="submission-file-actions">
+              <a class="btn-sm btn-soft" href="${escapeHTML(submission.fileDataUrl)}" target="_blank" rel="noopener">View</a>
+              <a class="btn-sm" href="${escapeHTML(submission.fileDataUrl)}" download="${escapeHTML(submission.fileName || "submission")}">Download</a>
+            </div>` : `<span class="muted small">Legacy submission</span>`}
+          </div>
+        </td>
+        <td>${escapeHTML(formatDate(submission.submittedAt || submission.createdAt || ""))}</td>
+        <td>
+          <input
+            id="grade-${escapeHTML(submission.id || "")}" 
+            class="grading-input"
+            type="text"
+            placeholder="e.g. 85%, A"
+            value="${escapeHTML(submission.grade || "")}"
+          >
+        </td>
+        <td>
+          <textarea
+            id="feedback-${escapeHTML(submission.id || "")}"
+            class="grading-textarea"
+            placeholder="Add feedback for this member..."
+          >${escapeHTML(submission.feedback || "")}</textarea>
+        </td>
+        <td>
+          <button class="btn-sm btn-primary-sm" data-grade-submission="${escapeHTML(submission.id || "")}">Save Grade</button>
+        </td>
+      </tr>
+    `);
+  });
+
+  submissionsTbody.querySelectorAll("button[data-grade-submission]").forEach((btn) => {
+    btn.addEventListener("click", () => gradeSubmission(btn.dataset.gradeSubmission));
   });
 }
 

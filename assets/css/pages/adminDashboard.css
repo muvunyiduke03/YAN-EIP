@@ -558,3 +558,41 @@ body { background: #f6f8fb; }
 @media (max-width: 720px){
   .kv{ grid-template-columns: 1fr; }
 }
+
+.submission-file-cell{
+  display: grid;
+  gap: 8px;
+}
+
+.submission-file-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grading-input,
+.grading-textarea{
+  width: 100%;
+  border: 1px solid #d7dfeb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.grading-input{
+  min-width: 110px;
+}
+
+.grading-textarea{
+  min-width: 220px;
+  min-height: 82px;
+  resize: vertical;
+}
+
+.submission-file-actions{
+  display:flex;
+  gap:8px;
+  margin-top:8px;
+  flex-wrap: wrap;
+}

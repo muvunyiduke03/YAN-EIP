@@ -69,6 +69,15 @@
     return String(s ?? "").replace(/[<>]/g, "");
   }
 
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error("Failed to read file."));
+      reader.readAsDataURL(file);
+    });
+  }
+
   // --------- Data ----------
   const YEAR = new Date().getFullYear();
 
@@ -97,6 +106,12 @@
   }
 
   const STORAGE_KEY = "yan_member_dashboard_v1";
+  const ADMIN_SUBMISSIONS_KEY = "yan_member_submissions";
+
+  const ADMIN_STORAGE_KEYS = {
+    COURSES: "yan_courses",
+    ASSIGNMENTS: "yan_assignments"
+  };
 
   const DEFAULT_STATE = {
     selectedQuarter: "Q1",
@@ -136,6 +151,58 @@
 
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function loadAdminSubmissions() {
+    try {
+      const raw = localStorage.getItem(ADMIN_SUBMISSIONS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function syncSubmissionToAdmin(entry) {
+    const submissions = loadAdminSubmissions();
+    const existingIndex = submissions.findIndex((submission) => submission.id === entry.id);
+
+    const memberName = state.profile.name || auth.user?.name || "Member User";
+    const memberEmail = state.profile.email || auth.user?.identifier || "";
+    const memberOrg = state.profile.org || "Organization Name";
+    
+    const existingSubmission = existingIndex >= 0 ? submissions[existingIndex] : null;
+
+    const submissionRecord = {
+      ...existingSubmission,
+      ...entry,
+      memberName,
+      memberEmail,
+      memberOrg,
+      submittedAt: new Date(entry.createdAt).toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      submissions[existingIndex] = { ...submissions[existingIndex], ...submissionRecord };
+    } else {
+      submissions.unshift(submissionRecord);
+    }
+
+    localStorage.setItem(ADMIN_SUBMISSIONS_KEY, JSON.stringify(submissions));
+  }
+
+  function syncAllSubmissionsToAdmin() {
+    state.submissions.forEach(syncSubmissionToAdmin);
+  }
+
+  function readJSONList(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return[];
+    }
   }
 
   let state = loadState();
@@ -196,6 +263,7 @@
     overallProgressText: $("#overallProgressText"),
     overallProgressFill: $("#overallProgressFill"),
     submittedCount: $("#submittedCount"),
+    gradedCountHint: $("#gradedCountHint"),
     nextUnlockLabel: $("#nextUnlockLabel"),
     nextUnlockDate: $("#nextUnlockDate"),
 
@@ -204,6 +272,7 @@
     quarterStatus: $("#quarterStatus"),
     quarterTabs: $$(".mdQuarterTab"),
     modulesList: $("#moduleList"),
+    assignmentList: $("#assignmentList"),
 
     // profile
     mdAvatar: $("#mdAvatar"),
@@ -231,6 +300,7 @@
     submitAssignmentBtn: $("#submitAssignmentBtn"),
     submissionAlert: $("#submissionAlert"),
     submissionHistory: $("#submissionHistory"),
+    gradeHistory: $("#gradeHistory"),
 
     // module viewer
     moduleViewerModal: $("#moduleViewerModal"),
@@ -254,6 +324,41 @@
     return Math.round((done / all.length) * 100);
   }
 
+  function getGradedSubmissions() {
+    return state.submissions.filter((submission) => submission.grade || submission.feedback);
+  }
+
+  function syncGradesFromAdmin() {
+    const adminSubmissions = loadAdminSubmissions();
+    let hasChanges = false;
+
+    state.submissions = state.submissions.map((submission) => {
+      const adminMatch = adminSubmissions.find((item) => item.id === submission.id);
+      if (!adminMatch) return submission;
+
+      const nextSubmission ={
+        ...submission,
+        grade: adminMatch.grade || "",
+        feedback: adminMatch.feedback || "",
+        gradedAt: adminMatch.gradedAt || submission.gradedAt || "",
+        gradedBy: adminMatch.gradedBy || submission.gradedBy || "",
+      };
+
+      if (
+        nextSubmission.grade !== (submission.grade || "") ||
+        nextSubmission.feedback !== (submission.feedback || "") ||
+        nextSubmission.gradedAt !== (submission.gradedAt || "") ||
+        nextSubmission.gradedBy !== (submission.gradedBy || "")
+      ) {
+        hasChanges = true
+      }
+
+      return nextSubmission;
+    });
+
+    if (hasChanges) saveState();
+  }
+
   function renderTopStats() {
     const openQ = currentOpenQuarter();
     const range = quarterRange(new Date().getFullYear(), openQ);
@@ -268,7 +373,11 @@
     els.overallProgressText.textContent = `${pct}%`;
     els.overallProgressFill.style.width = `${pct}%`;
 
+    const gradedCount = getGradedSubmissions().length;
     els.submittedCount.textContent = String(state.submissions.length);
+    if (els.gradedCountHint) {
+      els.gradedCountHint.textContent = `${gradedCount} graded submission ${gradedCount === 1 ? "" : "s"}`;
+    }
 
     els.nextUnlockLabel.textContent = next.quarter;
     els.nextUnlockDate.textContent = formatDate(next.date);
@@ -433,6 +542,93 @@
     }
   }
 
+  function renderGradeHistory() {
+    const list = els.gradeHistory;
+    if (!list) return;
+
+    list.innerHTML = "";
+    const graded = [...getGradedSubmissions()].sort((a, b) => Number(b.gradedAt || 0) - Number(a.gradedAt || 0));
+
+    if (!graded.length) {
+      list.innerHTML = `<div class="mdEmptyState">Grades from the admin will appear here once reviewed.</div>`;
+      return;
+    }
+
+    graded.forEach((submission) => {
+      const row = document.createElement("div");
+      row.className = "mdHistoryItem mdGradeItem";
+      row.innerHTML = `
+      <div class="mdHistoryLeft">
+          <div class="mdHistoryTitle">${safeText(submission.moduleTitle)}</div>
+          <div class="mdHistoryMeta">${safeText(submission.quarter)} • Graded ${formatDate(new Date(submission.gradedAt || submission.submittedAt || submission.createdAt))}</div>
+        </div>
+        <div class="mdHistoryRight mdGradeRight">
+          ${submission.grade ? `<span class="mdGradeChip">${safeText(submission.grade)}</span>` : ""}
+          <div class="mdGradeFeedback">${safeText(submission.feedback || "No feedback added yet.")}</div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function getAdminCourseMap() {
+    return Object.fromEntries(
+      readJSONList(ADMIN_STORAGE_KEYS.COURSES).map((course) => [course.id, course])
+    );
+  }
+
+  function getAssignmentsForQuarter(q) {
+    const courseMap = getAdminCourseMap();
+
+    return readJSONList(ADMIN_STORAGE_KEYS.ASSIGNMENTS).map((assignment) => {
+      const course = courseMap[assignment.courseId] || null;
+      return {
+        ...assignment,
+        courseTitle: course?.title || assignment.courseTitle || "Unknown course",
+        quarter: course?.quarter || assignment.quarter || "",
+      };
+    })
+    .filter((assignment) => assignment.quarter === q)
+    .sort((a, b) => {
+      const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    });
+  }
+
+  function renderAvailableAssignments(q) {
+    if (!els.assignmentList) return;
+
+    const assignments = getAssignmentsForQuarter(q);
+    els.assignmentList.innerHTML = "";
+
+    if (!assignments.length) {
+      els.assignmentList.innerHTML = `<div class="mdEmptyState">No assignments for ${safeText(q)} yet!</div>`;
+      return;
+    }
+
+    assignments.forEach((assignment) => {
+      const card = document.createElement("article");
+      card.className = "mdAssignmentCard";
+      card.innerHTML = `
+      <div class="mdAssignmentTop">
+        <div>
+          <h4 class="mdAssignmentTitle">
+            ${safeText(assignment.title || "Untitled Assignment")}
+          </h4>
+          <div class="mdAssignmentMeta">
+            <span>${safeText(assignment.courseTitle)}</span>
+            <span>${assignment.dueDate ? `Due ${safeText(formatDate(new Date(assignment.dueDate)))}` : "No due date"}</span>
+          </div>
+        </div>
+        <span class="mdAssignmentQuarter">${safeText(q)}</span>
+      </div>
+      <p class="mdAssignmentDesc">${safeText(assignment.description || "No instructions added yet.")}</p>
+      `;
+      els.assignmentList.appendChild(card);
+    });
+  }
+  
   function syncSubmissionModuleOptions() {
     const q = els.submissionQuarter.value || state.selectedQuarter;
     const mods = MODULES[q] || [];
@@ -712,7 +908,7 @@
       }
     });
 
-    els.submitAssignmentBtn.addEventListener("click", () => {
+    els.submitAssignmentBtn.addEventListener("click", async() => {
       const q = els.submissionQuarter.value;
       const moduleId = els.submissionModule.value;
       if (!q || !moduleId || !selectedFile) return;
@@ -726,19 +922,28 @@
       const module = (MODULES[q] || []).find((m) => m.id === moduleId);
       if (!module) return;
 
-      // Store metadata only (backend will handle actual file upload later)
-      const entry = {
-        id: `sub-${Date.now()}`,
-        quarter: q,
-        moduleId,
-        moduleTitle: module.title,
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size,
-        createdAt: Date.now(),
-      };
+      try {
+        const fileDataUrl = await readFileAsDataURL(selectedFile);
+        
+        const entry = {
+          id: `sub-${Date.now()}`,
+          quarter: q,
+          moduleId,
+          moduleTitle: module.title,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type || "application/octet-stream",
+          fileDataUrl,
+          createdAt: Date.now(),
+        };
 
-      state.submissions.push(entry);
-      saveState();
+        state.submissions.push(entry);
+        saveState();
+        syncSubmissionToAdmin(entry);
+      } catch {
+        setAlert("We could not read that file. Please try uploading again.", "warning");
+        return;
+      }
 
       // reset UI
       selectedFile = null;
@@ -747,7 +952,8 @@
 
       renderTopStats();
       renderSubmissionHistory();
-      setAlert("Submission saved (demo). Backend upload will come later.", "success");
+      renderGradeHistory();
+      setAlert("Submission saved successfully. Awaiting review", "success");
     });
   }
 
@@ -836,11 +1042,14 @@
       saveState();
     }
 
+    syncAllSubmissionsToAdmin();
+    syncGradesFromAdmin();
     renderTopStats();
     renderProfile();
     renderQuarterTabs(state.selectedQuarter);
     renderQuarterMeta(state.selectedQuarter);
     renderModules(state.selectedQuarter);
+    renderAvailableAssignments(state.selectedQuarter);
 
     // submission selectors
     els.submissionQuarter.value = state.selectedQuarter;
@@ -848,11 +1057,13 @@
     updateFilePreview();
 
     renderSubmissionHistory();
+    renderGradeHistory();
   }
 
   // --------- Boot ----------
   document.addEventListener("DOMContentLoaded", () => {
     MODULES = buildModulesFromHTML();
+    syncAllSubmissionsToAdmin();
     // navbar/footer are injected by include.js already
     bindModalClosers();
     bindProfileUI();
