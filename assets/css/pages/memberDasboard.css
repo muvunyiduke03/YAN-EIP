@@ -112,24 +112,49 @@
   color: var(--secondary-color);
 }
 
-/* QUARTER TABS */
-.mdQuarterTabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
+/* QUARTER CARDS */
+.mdQuarterCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
-.mdQuarterTab {
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: #eee;
-  border: none;
+.mdQuarterCard {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #dfe7f3;
+  background: #f7faff;
   cursor: pointer;
+  text-align: left;
+  transition: 0.2s ease;
 }
 
-.mdQuarterTab.active {
+.mdQuarterCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.mdQuarterCard.active {
   background: #0D47A1;
+  border-color: #0D47A1;
   color: white;
+}
+
+.mdQuarterCardTitle {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.mdQuarterCardHint {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.mdQuarterCard.active .mdQuarterCardHint {
+  color: rgba(255,255,255,0.9);
 }
 
 /* MODULE CARDS */
@@ -219,6 +244,28 @@
   margin-top: 12px;
   display: flex;
   justify-content: space-between;
+}
+
+.mdCourseResources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mdResourceLink {
+  border: 1px solid #d9e4f6;
+  border-radius: 999px;
+  padding: 6px 10px;
+  text-decoration: none;
+  font-size: 0.78rem;
+  color: #0D47A1;
+  background: #f4f8ff;
+}
+
+.mdResourceLink.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* PROFILE */
@@ -314,7 +361,7 @@
 }
 .mdStatusBadge.open { background: #e8f8ec; color: #176437; }
 .mdStatusBadge.locked { background: #fff4e8; color: #9f4f0f; }
-.mdQuarterTab.is-locked { opacity: 0.55; }
+.mdQuarterCard.is-locked { opacity: 0.55; }
 
 .mdModuleCard.locked { opacity: 0.8; }
 .mdModuleTop { display: flex; justify-content: space-between; gap: 10px; }

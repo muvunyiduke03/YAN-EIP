@@ -94,11 +94,35 @@
       const title = (el.dataset.title || "").trim();
       if (!id || !title) return;
 
+      const slidesUrl = (
+        el.dataset.slidesUrl ||
+        el.dataset.fileUrl ||
+        el.getAttribute("data-slides-url") ||
+        el.getAttribute("data-file-url") ||
+        ""
+      ).trim()
+
+      const followUpUrl = (
+        el.dataset.followUpUrl ||
+        el.dataset.followUpUrl ||
+        el.getAttribute("data-follow-up-url") ||
+        el.getAttribute("data-followup-url") ||
+        ""
+      ).trim();
+
+      const sessionUrl = (
+        el.dataset.sessionUrl ||
+        el.getAttribute("data-session-url") ||
+        ""
+      ).trim;
+
       modules[quarter].push({
         id,
         title,
         description: (el.dataset.description || "").trim(),
-        fileUrl: (el.dataset.fileUrl || "").trim(),
+        slidesUrl,
+        followUrl,
+        sessionUrl,
       });
     });
 
@@ -270,7 +294,7 @@
     quarterName: $("#quarterName"),
     quarterRange: $("#quarterRange"),
     quarterStatus: $("#quarterStatus"),
-    quarterTabs: $$(".mdQuarterTab"),
+    quarterTabs: $$(".mdQuarterCard"),
     modulesList: $("#moduleList"),
     assignmentList: $("#assignmentList"),
 
@@ -443,7 +467,7 @@
 
       // visually show locked
       btn.classList.toggle("is-locked", !allowed);
-      btn.title = allowed ? "" : "Locked";
+      btn.title = allowed ? quarterPrettyName(q) : `${quarterPrettyName(q)} (locked)`;
     });
   }
 
@@ -497,9 +521,21 @@
           </div>
         </div>
 
+        <div class="mdCourseResources">
+          <a class="mdResourceLink ${m.slidesUrl ? "" : "disabled"}" href="${m.slidesUrl ? encodeURI(m.slidesUrl) : "#"}" target="_blank" rel="noopener noreferrer" ${m.slidesUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
+            Slides
+          </a>
+          <a class="mdResourceLink ${m.followUpUrl ? "" : "disabled"}" href="${m.followUpUrl ? encodeURI(m.followUpUrl) : "#"}" target="_blank" rel="noopener noreferrer" ${m.followUpUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
+            Follow-up Resource
+          </a>
+          <a class="mdResourceLink ${m.sessionUrl ? "" : "disabled"}" href="${m.sessionUrl ? encodeURI(m.sessionUrl) : "#"}" target="_blank" rel="noopener noreferrer" ${m.sessionUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
+            Session Guide
+          </a>
+        </div>
+
         <div class="mdModuleActions">
           <button class="btn btn-outline btn-small" data-action="view" data-q="${q}" data-id="${m.id}" ${locked ? "disabled" : ""}>
-            View module
+            Open Slides
           </button>
 
           <button class="btn btn-primary btn-small" data-action="complete" data-q="${q}" data-id="${m.id}" ${locked || completed ? "disabled" : ""}>
@@ -696,12 +732,12 @@
     els.viewerMeta.textContent = `${q} • ${status}`;
 
     // Load file
-    els.moduleViewerFrame.src = m.fileUrl ? encodeURI(m.fileUrl) : "";
+    els.moduleViewerFrame.src = m.slidesUrl ? encodeURI(m.slidesUrl) : "";
 
     // Buttons
     if (els.openInNewTabBtn) {
       els.openInNewTabBtn.onclick = () => {
-        if (m.fileUrl) window.open(encodeURI(m.fileUrl), "_blank", "noopener");
+        if (m.slidesUrl) window.open(encodeURI(m.slidesUrl), "_blank", "noopener");
       };
     }
 
@@ -1020,8 +1056,8 @@
 
       if (action === "view") {
         const mod = (MODULES[q] || []).find((m) => m.id === id);
-        if (mod?.fileUrl) {
-          window.open(mod.fileUrl, "_blank", "noopener");
+        if (mod?.slidesUrl) {
+          window.open(mod.slidesUrl, "_blank", "noopener");
         }
       }
       if (action === "complete") {
