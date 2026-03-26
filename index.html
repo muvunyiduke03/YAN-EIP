@@ -17,7 +17,7 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <div class="logo-circle"></div>
+                <img class="logo-image" src="/images/XF_JMfRL_400x400.jpg" alt="YAN Rwanda Logo">
                 <span class="brand-text">YAN <span class="brand-accent">Rwanda</span></span>
             </div>
             
@@ -70,6 +70,9 @@
     <!-- Hero Section -->
     <section class="hero" id="home">
         <div class="hero-background">
+            <video class="hero-background-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true">
+                <source src="video/video_yan.mp4" type="video/mp4">
+            </video>
             <div class="hero-gradient"></div>
             <div class="floating-shapes">
                 <div class="shape shape-1"></div>
@@ -97,20 +100,13 @@
                 </button>
             </a>
                 
-                <button class="btn btn-secondary" onclick="document.getElementById('about').scrollIntoView({behavior: 'smooth'})">
-                    <span>Learn More</span>
-                </button>
+                <a href="/pages/donate-partner.html">
+                    <button class="btn btn-secondary" id="donatePatnerBtn">
+                        <span>Donate/Patner</span>
+                    </button>
+                </a>
             </div>
 
-            <div class="hero-video-section">
-                <h3 class="hero-video-title">Learn More About Youth Advocates Network (YAN)</h3>
-                <div class="hero-video-wrapper">
-                    <video class="hero-video" controls preload="metadata">
-                        <source src="video/video_yan.mp4" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-            </div>
         </div>
         
         <div class="scroll-indicator">
@@ -413,7 +409,7 @@
                             </div>
                             <div>
                                 <h4>Email</h4>
-                                <p>info@yanrwanda.org</p>
+                                <p>info.yanet@gmail.com</p>
                             </div>
                         </div>
                         
@@ -425,7 +421,7 @@
                             </div>
                             <div>
                                 <h4>Phone</h4>
-                                <p>+250 XXX XXX XXX</p>
+                                <p>+250 788 765 543</p>
                             </div>
                         </div>
                     </div>
@@ -505,7 +501,7 @@
         <div class="admin-shell">
             <aside class="admin-sidebar" id="adminSidebar">
                 <div class="admin-brand">
-                    <div class="logo-circle"></div>
+                    <img class="logo-image" src="/images/XF_JMfRL_400x400.jpg" alt="YAN Rwanda Logo">
                     <div>
                         <h1>MEMBER</h1>
                         <p>Learning Workspace</p>

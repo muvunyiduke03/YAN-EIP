@@ -94,11 +94,35 @@
       const title = (el.dataset.title || "").trim();
       if (!id || !title) return;
 
+      const slidesUrl = (
+        el.dataset.slidesUrl ||
+        el.dataset.fileUrl ||
+        el.getAttribute("data-slides-url") ||
+        el.getAttribute("data-file-url") ||
+        ""
+      ).trim()
+
+      const followUpUrl = (
+        el.dataset.followUpUrl ||
+        el.dataset.followUpUrl ||
+        el.getAttribute("data-follow-up-url") ||
+        el.getAttribute("data-followup-url") ||
+        ""
+      ).trim();
+
+      const sessionUrl = (
+        el.dataset.sessionUrl ||
+        el.getAttribute("data-session-url") ||
+        ""
+      ).trim;
+
       modules[quarter].push({
         id,
         title,
         description: (el.dataset.description || "").trim(),
-        fileUrl: (el.dataset.fileUrl || "").trim(),
+        slidesUrl,
+        followUpUrl,
+        sessionUrl,
       });
     });
 
@@ -270,7 +294,7 @@
     quarterName: $("#quarterName"),
     quarterRange: $("#quarterRange"),
     quarterStatus: $("#quarterStatus"),
-    quarterTabs: $$(".mdQuarterTab"),
+    quarterTabs: $$(".mdQuarterCard"),
     modulesList: $("#moduleList"),
     assignmentList: $("#assignmentList"),
 
@@ -443,7 +467,7 @@
 
       // visually show locked
       btn.classList.toggle("is-locked", !allowed);
-      btn.title = allowed ? "" : "Locked";
+      btn.title = allowed ? quarterPrettyName(q) : `${quarterPrettyName(q)} (locked)`;
     });
   }
 
@@ -497,9 +521,18 @@
           </div>
         </div>
 
+        <div class="mdCourseResources">
+          <a class="mdResourceLink ${m.slidesUrl ? "" : "disabled"}" href="${m.slidesUrl ? encodeURI(m.slidesUrl) : "#"}" target="_blank" rel="noopener noreferrer" ${m.slidesUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
+            Slides
+          </a>
+          <a class="mdResourceLink ${m.followUpUrl ? "" : "disabled"}" href="${m.followUpUrl ? encodeURI(m.followUpUrl) : "#"}" target="_blank" rel="noopener noreferrer" ${m.followUpUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>
+            Follow-up Resource
+          </a>
+        </div>
+
         <div class="mdModuleActions">
           <button class="btn btn-outline btn-small" data-action="view" data-q="${q}" data-id="${m.id}" ${locked ? "disabled" : ""}>
-            View module
+            Open Slides
           </button>
 
           <button class="btn btn-primary btn-small" data-action="complete" data-q="${q}" data-id="${m.id}" ${locked || completed ? "disabled" : ""}>
@@ -633,11 +666,17 @@
     const q = els.submissionQuarter.value || state.selectedQuarter;
     const mods = MODULES[q] || [];
     const select = els.submissionModule;
+    const quarterReportOptionValue = `quarter-report-${q.toLowerCase()}`;
 
     // preserve selection if possible
     const prev = select.value;
 
     select.innerHTML = `<option value="">Select module…</option>`;
+    const reportOption = document.createElement("option");
+    reportOption.value = quarterReportOptionValue;
+    reportOption.textContent = `${q} Quarterly Report`;
+    select.appendChild(reportOption);
+
     mods.forEach((m) => {
       const opt = document.createElement("option");
       opt.value = m.id;
@@ -696,12 +735,12 @@
     els.viewerMeta.textContent = `${q} • ${status}`;
 
     // Load file
-    els.moduleViewerFrame.src = m.fileUrl ? encodeURI(m.fileUrl) : "";
+    els.moduleViewerFrame.src = m.slidesUrl ? encodeURI(m.slidesUrl) : "";
 
     // Buttons
     if (els.openInNewTabBtn) {
       els.openInNewTabBtn.onclick = () => {
-        if (m.fileUrl) window.open(encodeURI(m.fileUrl), "_blank", "noopener");
+        if (m.slidesUrl) window.open(encodeURI(m.slidesUrl), "_blank", "noopener");
       };
     }
 
@@ -920,7 +959,8 @@
       }
 
       const module = (MODULES[q] || []).find((m) => m.id === moduleId);
-      if (!module) return;
+      const isQuarterReport = moduleId === `quarter-report-${q.toLowerCase()}`;
+      if(!module && !isQuarterReport) return;
 
       try {
         const fileDataUrl = await readFileAsDataURL(selectedFile);
@@ -929,7 +969,7 @@
           id: `sub-${Date.now()}`,
           quarter: q,
           moduleId,
-          moduleTitle: module.title,
+          moduleTitle: module?.title || `${q} Quarterly Report`,
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
           fileType: selectedFile.type || "application/octet-stream",
@@ -984,13 +1024,13 @@
       btn.addEventListener("click", () => {
         const q = btn.dataset.quarter;
 
-        if (!canAccessQuarter(q)) {
-          // keep user on current
-          renderQuarterTabs(state.selectedQuarter);
-          renderQuarterMeta(state.selectedQuarter);
-          renderModules(state.selectedQuarter);
-          return;
-        }
+        // if (!canAccessQuarter(q)) {
+        //   // keep user on current
+        //   renderQuarterTabs(state.selectedQuarter);
+        //   renderQuarterMeta(state.selectedQuarter);
+        //   renderModules(state.selectedQuarter);
+        //   return;
+        // }
 
         state.selectedQuarter = q;
         saveState();
@@ -1020,8 +1060,8 @@
 
       if (action === "view") {
         const mod = (MODULES[q] || []).find((m) => m.id === id);
-        if (mod?.fileUrl) {
-          window.open(mod.fileUrl, "_blank", "noopener");
+        if (mod?.slidesUrl) {
+          window.open(mod.slidesUrl, "_blank", "noopener");
         }
       }
       if (action === "complete") {
@@ -1036,11 +1076,11 @@
       return;
     }
 
-    // Fix selected quarter if it is locked
-    if (!canAccessQuarter(state.selectedQuarter)) {
-      state.selectedQuarter = currentOpenQuarter();
-      saveState();
-    }
+    // // Fix selected quarter if it is locked
+    // if (!canAccessQuarter(state.selectedQuarter)) {
+    //   state.selectedQuarter = currentOpenQuarter();
+    //   saveState();
+    // }
 
     syncAllSubmissionsToAdmin();
     syncGradesFromAdmin();
